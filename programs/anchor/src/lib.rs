@@ -97,7 +97,11 @@ pub mod ecom_dapp {
         )?;
         Ok(())
     }
-
+    pub fn close_escrow(
+        ctx: Context<CloseEscrowAccount>
+    ) -> Result<()> {
+        ctx.accounts.close_escrow()
+    }
     pub fn deposit_escrow(
         ctx: Context<DepositeEscrow>,
         _product_id: u32,
@@ -113,7 +117,7 @@ pub mod ecom_dapp {
         _product_id: u32,
     ) -> Result<()> {
         ctx.accounts.withdrawl_escrow(
-            ctx.bumps.escrow,
+            ctx.bumps.vault_account,
         )?;
         Ok(())
     }
