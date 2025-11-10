@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, Transfer};
+use anchor_lang::{prelude::*, system_program};
+use anchor_spl::token::Token;
 use crate::{error::EcomError, states::{escrow::{Escrow, EscrowStatus}, payment::{Payment, PaymentMethod, PaymentStatus}}};
 use anchor_lang::solana_program::hash::{self};
 
@@ -236,17 +236,16 @@ impl <'info> DepositeEscrow<'info> {
             EcomError::EscrowError
         );
 
-        let cpi_accounts = Transfer{
+        let cpi_accounts = system_program::Transfer {
             from:self.user_ata.to_account_info(),
             to:self.escrow_ata.to_account_info(),
-            authority: self.owner.to_account_info(),
         };
         let cpi_programs = self.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(
             cpi_programs,
             cpi_accounts,
         );
-        token::transfer(cpi_ctx, amount)?;
+        system_program::transfer(cpi_ctx, amount)?;
 
         // payment.payment_status = PaymentStatus::Success;
         escrow.escrow_status = EscrowStatus::FundsReceived;
@@ -271,10 +270,9 @@ impl <'info> WithdrawlEscrow<'info> {
         );
         require!(escrow.release_fund == true,EcomError::FundsNotFound);
         
-        let cpi_accounts = Transfer{
+        let cpi_accounts = system_program::Transfer{
             from:self.escrow_ata.to_account_info(),
             to:self.seller_ata.to_account_info(),
-            authority: escrow.to_account_info(),
         };
         let cpi_programs = self.token_program.to_account_info();
         let owner_key = self.owner.key();
@@ -289,7 +287,7 @@ impl <'info> WithdrawlEscrow<'info> {
             cpi_accounts,
             signer_seeds,
         );
-        token::transfer(cpi_ctx, amount)?;
+        system_program::transfer(cpi_ctx, amount)?;
 
         payment.payment_status = PaymentStatus::Success;
         escrow.escrow_status = EscrowStatus::SwapSuccess;
