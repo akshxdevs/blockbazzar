@@ -35,6 +35,18 @@ pub struct CloseAccount<'info>{
     pub payments:Account<'info,Payment>,
 }
 
+#[derive(Accounts)]
+pub struct CloseEscrowAccount<'info>{
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    #[account(
+        mut,
+        close = signer,
+        seeds = [b"escrow",signer.key().as_ref()],
+        bump,
+    )]
+    pub escrow:Account<'info,Escrow>,
+}
 
 #[derive(Accounts)]
 pub struct CreateEscrow<'info>{
@@ -75,74 +87,73 @@ pub struct CreateEscrow<'info>{
 }
 
 
-    #[derive(Accounts)]
-    pub struct DepositeEscrow<'info>{
-        #[account(mut)]
-        pub owner: Signer<'info>,
-        #[account(
-            mut,
-            seeds = [b"escrow",owner.key().as_ref()],
-            bump,
-        )]
-        pub escrow: Account<'info,Escrow>,
-
-        #[account(
-            mut,
-            seeds = [b"payment",owner.key().as_ref()],
-            bump,
-        )]
-        pub payment:Account<'info,Payment>,
+#[derive(Accounts)]
+pub struct DepositeEscrow<'info>{
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"escrow",owner.key().as_ref()],
+        bump,
+    )]
+    pub escrow: Account<'info,Escrow>,
+    #[account(
+        mut,
+        seeds = [b"payment",owner.key().as_ref()],
+        bump,
+    )]
+    pub payment:Account<'info,Payment>,
+    ///CHECK: Native SOL Vault Account
+    #[account(
+        mut,
+        seeds = [b"vault",owner.key().as_ref()],
+        bump,
+    )]    
+    pub vault_account: AccountInfo<'info>,
     
-        ///CHECK: User Token Account
-        #[account(mut)]
-        pub user_ata: AccountInfo<'info>,
-        ///CHECK: Escrow Token Account
-        #[account(mut)]
-        pub escrow_ata: AccountInfo<'info>,
-        ///CHECK: Buyer Token Account
-        #[account(mut)]
-        pub buyer_ata: AccountInfo<'info>,
-        ///CHECK: Seller Token Account
-        #[account(mut)]
-        pub seller_ata: AccountInfo<'info>,
-        pub system_program:Program<'info,System>,
-        pub token_program:Program<'info,Token>
-    }
+    ///CHECK: Native SOL Escrow Accounts
+    #[account(mut)]
+    pub escrow_account: AccountInfo<'info>,
 
-    #[derive(Accounts)]
-    pub struct WithdrawlEscrow<'info>{
-        #[account(mut)]
-        pub owner: Signer<'info>,
+    ///CHECK: Native SOL User Accounts
+    #[account(mut)]
+    pub user_account: AccountInfo<'info>,
+    pub system_program:Program<'info,System>,
+}
 
-        #[account(
-            mut,
-            seeds = [b"escrow",owner.key().as_ref()],
-            bump,
-        )]
-        pub escrow: Account<'info,Escrow>,
+#[derive(Accounts)]
+pub struct WithdrawlEscrow<'info>{
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"escrow",owner.key().as_ref()],
+        bump,
+    )]
+    pub escrow: Account<'info,Escrow>,
+    #[account(
+        mut,
+        seeds = [b"payment",owner.key().as_ref()],
+        bump,
+    )]
+    pub payment:Account<'info,Payment>,
+    ///CHECK: Native SOL Vault Account
+    #[account(
+        mut,
+        seeds = [b"vault",owner.key().as_ref()],
+        bump,
+    )]    
+    pub vault_account: AccountInfo<'info>,
 
-        #[account(
-            mut,
-            seeds = [b"payment",owner.key().as_ref()],
-            bump,
-        )]
-        pub payment:Account<'info,Payment>,
+    ///CHECK: Native SOL Escrow Account
+    #[account(mut)]
+    pub escrow_account: AccountInfo<'info>,
 
-        ///CHECK: User Token Account
-        #[account(mut)]
-        pub user_ata: AccountInfo<'info>,
-        ///CHECK: Escrow Token Account
-        #[account(mut)]
-        pub escrow_ata: AccountInfo<'info>,
-        ///CHECK: Buyer Token Account
-        #[account(mut)]
-        pub buyer_ata: AccountInfo<'info>,
-        ///CHECK: Seller Token Account
-        #[account(mut)]
-        pub seller_ata: AccountInfo<'info>,
-        pub system_program:Program<'info,System>,
-        pub token_program:Program<'info,Token>
-    }
+    ///CHECK: Native SOL Seller Account
+    #[account(mut)]
+    pub seller_account: AccountInfo<'info>,
+    pub system_program:Program<'info,System>,
+}
 
 
 
@@ -221,11 +232,19 @@ impl <'info> CreateEscrow<'info> {
     }
 }
 
+impl <'info> CloseEscrowAccount<'info> {
+    pub fn close_escrow(
+        &mut self
+    )->Result<()> {
+        msg!("Escrow account {} closed successfully",self.escrow.key());
+        Ok(())
+    }
+}
+
 impl <'info> DepositeEscrow<'info> {
     pub fn deposite_escrow(
         &mut self,
         _escrow_bump:u8,
-
     )-> Result<()> {
         let payment = &mut self.payment;
         let escrow = &mut self.escrow;
@@ -237,17 +256,16 @@ impl <'info> DepositeEscrow<'info> {
         );
 
         let cpi_accounts = system_program::Transfer {
-            from:self.user_ata.to_account_info(),
-            to:self.escrow_ata.to_account_info(),
+            from:self.user_account.to_account_info(),
+            to:self.vault_account.to_account_info(),
         };
-        let cpi_programs = self.token_program.to_account_info();
+        let cpi_programs = self.system_program.to_account_info();
         let cpi_ctx = CpiContext::new(
             cpi_programs,
             cpi_accounts,
         );
         system_program::transfer(cpi_ctx, amount)?;
 
-        // payment.payment_status = PaymentStatus::Success;
         escrow.escrow_status = EscrowStatus::FundsReceived;
         escrow.release_fund = true;
         Ok(())
@@ -257,7 +275,7 @@ impl <'info> DepositeEscrow<'info> {
 impl <'info> WithdrawlEscrow<'info> {
     pub fn withdrawl_escrow(
         &mut self,
-        escrow_bump:u8,
+        vault_bump:u8
     )-> Result<()> {
         let payment = &mut self.payment;
         let escrow = &mut self.escrow;
@@ -271,15 +289,15 @@ impl <'info> WithdrawlEscrow<'info> {
         require!(escrow.release_fund == true,EcomError::FundsNotFound);
         
         let cpi_accounts = system_program::Transfer{
-            from:self.escrow_ata.to_account_info(),
-            to:self.seller_ata.to_account_info(),
+            from:self.vault_account.to_account_info(),
+            to:self.seller_account.to_account_info(),
         };
-        let cpi_programs = self.token_program.to_account_info();
+        let cpi_programs: AccountInfo<'_> = self.system_program.to_account_info();
         let owner_key = self.owner.key();
         let seeds: &[&[u8]] = &[
-            b"escrow",
+            b"vault",
             owner_key.as_ref(),
-            &[escrow_bump],
+            &[vault_bump],
         ];
         let signer_seeds = &[&seeds[..]];
         let cpi_ctx = CpiContext::new_with_signer(
