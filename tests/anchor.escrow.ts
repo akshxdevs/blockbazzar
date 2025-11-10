@@ -183,66 +183,32 @@ describe("anchor", () => {
   });
 
 
-  it("creates escrow", async () => {
+  it.only("creates escrow", async () => {
     [escrowPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("escrow"), owner.toBuffer()],
       program.programId
     );
 
+    const amount = new BN(PAYMENT_AMOUNT);
     try {
-      await program.account.escrow.fetch(escrowPda);
-
-      console.log("Escrow already exists");
-      console.log("Escrow PDA + escrow_ata created");
-
-      const sellerBal = await provider.connection.getTokenAccountBalance(sellerAta);
-      const userBal = await provider.connection.getTokenAccountBalance(userAta);
-      const escrowBal = await provider.connection.getTokenAccountBalance(escrowAta);
-      const buyerBal = await provider.connection.getTokenAccountBalance(buyerAta);
-        
-      const userSOL = userBal.value.amount; 
-      const escrowSOL = escrowBal.value.amount ;
-      const buyerSOL = buyerBal.value.amount ;
-      const sellerSOL = sellerBal.value.amount;
-        
-      console.log("Account Balances:");
-      console.log(`Buyer (${buyer.toString()}): ${buyerSOL} SOL`);
-      console.log(`Seller (${buyer.toString()}): ${sellerSOL} SOL`);
-      console.log(`Escrow (${escrowPda.toString()}): ${escrowSOL} SOL`);
-      console.log(`User (${owner.toString()}): ${userSOL} SOL`);
-    } catch {
-      const amount = new BN(PAYMENT_AMOUNT);
-      await program.methods
-        .createEscrow(buyer, seller, amount)
-        .accounts({
-          owner: owner,
-          escrow: escrowPda,
-          payment: paymentPda,
-          userAta,
-          escrowAta,
-          buyerAta,
-          sellerAta,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        }as any)
-        .rpc();
-
-      console.log("Escrow PDA + escrow_ata created");
-      const buyerBalance = await provider.connection.getBalance(buyer);
-      const sellerBalance = await provider.connection.getBalance(seller);
-      const escrowBalance = await provider.connection.getBalance(escrowPda);
-      const userBalance = await provider.connection.getBalance(owner);
+    await program.methods
+      .createEscrow(buyer, seller, amount)
+      .accounts({
+        owner: owner,
+        escrow: escrowPda,
+        payment: paymentPda,
+        userAta,
+        escrowAta,
+        buyerAta,
+        sellerAta,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      }as any)
+      .rpc();
+    } catch (error) {
+      const userDetails = await provider.connection.getBalance(owner);
+      console.log("User Details: ",userDetails / LAMPORTS_PER_SOL + " SOL");
       
-      const userSOL = userBalance / LAMPORTS_PER_SOL; 
-      const escrowSOL = escrowBalance / LAMPORTS_PER_SOL;
-      const buyerSOL = buyerBalance / LAMPORTS_PER_SOL;
-      const sellerSOL = sellerBalance / LAMPORTS_PER_SOL;
-      
-      console.log("Account Balances:");
-      console.log(`Buyer (${buyer.toString()}): ${buyerSOL.toFixed(4)} SOL`);
-      console.log(`Seller (${buyer.toString()}): ${sellerSOL.toFixed(4)} SOL`);
-      console.log(`Escrow (${escrowPda.toString()}): ${escrowSOL.toFixed(4)} SOL`);
-      console.log(`User (${owner.toString()}): ${userSOL.toFixed(4)} SOL`);
     }
   });
 
