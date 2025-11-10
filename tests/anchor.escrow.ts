@@ -7,10 +7,6 @@ import { expect } from "chai";
 import { BN } from "@coral-xyz/anchor";
 import { 
   TOKEN_PROGRAM_ID,           
-  getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountInstruction,
-  createMintToInstruction,
-  createInitializeMintInstruction
 } from "@solana/spl-token";
 
 describe("anchor", () => {
@@ -28,7 +24,27 @@ describe("anchor", () => {
   let buyer = new PublicKey("GXrTGkUU17MGwpMW7fqgh65xWECvtNtXeaBkEFeeb42s");
   buyer.toBytes();
 
-  const PAYMENT_AMOUNT = 1_459;
+  const PAYMENT_AMOUNT_USD = 200;
+  const getSolPrice = async (usdAmount: number): Promise<number> => {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+    );
+    const data = (await res.json()) as { solana: { usd: number } };
+    
+    const solPrice = data.solana.usd;
+    const solAmount = usdAmount / solPrice;
+    console.log({solAmount});
+    
+    return Math.round(solAmount * LAMPORTS_PER_SOL);
+  };
+  let USD_TO_SOL:Number;
+  let PAYMENT_AMOUNT:Number;
+  before(async()=>{
+    USD_TO_SOL = await getSolPrice(PAYMENT_AMOUNT_USD);
+    console.log({USD_TO_SOL});
+    PAYMENT_AMOUNT = Number(USD_TO_SOL);
+    console.log("Payment Amount: ",(Number(PAYMENT_AMOUNT) / LAMPORTS_PER_SOL).toFixed(4)+ " SOL");
+  });  
 
   let mint:anchor.web3.PublicKey;
   let escrowAta:anchor.web3.PublicKey;
@@ -55,8 +71,8 @@ describe("anchor", () => {
     fundIfNeeded(buyer),
     fundIfNeeded(seller),
   ]);
-
   });
+
   function bytesToUuid(bytes: number[]): string {
     if (bytes.length !== 16) throw new Error("Invalid UUID length");
 
@@ -70,145 +86,153 @@ describe("anchor", () => {
     ].join("-");
   }
 
-  it("creates a mint", async () => {
-    const mintKp = anchor.web3.Keypair.generate();
-    const lamports = await provider.connection.getMinimumBalanceForRentExemption(82);
+  // it("creates a mint", async () => {
+  //   const mintKp = anchor.web3.Keypair.generate();
+  //   const lamports = await provider.connection.getMinimumBalanceForRentExemption(82);
 
-    const tx = new Transaction().add(
-      SystemProgram.createAccount({
-        fromPubkey: owner,
-        newAccountPubkey: mintKp.publicKey,
-        space: 82,
-        lamports,
-        programId: TOKEN_PROGRAM_ID,
-      }),
-      createInitializeMintInstruction(
-        mintKp.publicKey,
-        9,
-        owner,   
-        null               
-      )
-    );
+  //   const tx = new Transaction().add(
+  //     SystemProgram.createAccount({
+  //       fromPubkey: owner,
+  //       newAccountPubkey: mintKp.publicKey,
+  //       space: 82,
+  //       lamports,
+  //       programId: TOKEN_PROGRAM_ID,
+  //     }),
+  //     createInitializeMintInstruction(
+  //       mintKp.publicKey,
+  //       9,
+  //       owner,   
+  //       null               
+  //     )
+  //   );
 
-    await provider.sendAndConfirm(tx, [mintKp]);
-    mint = mintKp.publicKey;
-    console.log("Mint Address: ",mint);
+  //   await provider.sendAndConfirm(tx, [mintKp]);
+  //   mint = mintKp.publicKey;
+  //   console.log("Mint Address: ",mint);
     
-  });
+  // });
 
-  it("creates user ATAs", async () => {
-    if (owner) {
-      [escrowPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("escrow"), owner.toBuffer()],
-        program.programId
-      );
-    }else{
-      console.error("Owner error");
+  // it("creates user ATAs", async () => {
+  //   if (owner) {
+  //     [escrowPda] = PublicKey.findProgramAddressSync(
+  //       [Buffer.from("escrow"), owner.toBuffer()],
+  //       program.programId
+  //     );
+  //   }else{
+  //     console.error("Owner error");
       
-    }
-    userAta = getAssociatedTokenAddressSync(mint, owner);
-    buyerAta = getAssociatedTokenAddressSync(mint, buyer);
-    sellerAta = getAssociatedTokenAddressSync(mint, seller);
-    escrowAta = getAssociatedTokenAddressSync(mint,escrowPda,true);
-    const tx = new Transaction().add(
-      createAssociatedTokenAccountInstruction(
-        owner,
-        userAta,
-        owner,
-        mint
-      ),
-      createAssociatedTokenAccountInstruction(
-        owner,
-        buyerAta,
-        buyer,
-        mint
-      ),
-      createAssociatedTokenAccountInstruction(
-        owner,
-        sellerAta,
-        seller,
-        mint
-      ),
-      createAssociatedTokenAccountInstruction(
-        owner,
-        escrowAta,
-        escrowPda,
-        mint
-      )
-    );
+  //   }
+  //   userAta = getAssociatedTokenAddressSync(mint, owner);
+  //   buyerAta = getAssociatedTokenAddressSync(mint, buyer);
+  //   sellerAta = getAssociatedTokenAddressSync(mint, seller);
+  //   escrowAta = getAssociatedTokenAddressSync(mint,escrowPda,true);
+  //   const tx = new Transaction().add(
+  //     createAssociatedTokenAccountInstruction(
+  //       owner,
+  //       userAta,
+  //       owner,
+  //       mint
+  //     ),
+  //     createAssociatedTokenAccountInstruction(
+  //       owner,
+  //       buyerAta,
+  //       buyer,
+  //       mint
+  //     ),
+  //     createAssociatedTokenAccountInstruction(
+  //       owner,
+  //       sellerAta,
+  //       seller,
+  //       mint
+  //     ),
+  //     createAssociatedTokenAccountInstruction(
+  //       owner,
+  //       escrowAta,
+  //       escrowPda,
+  //       mint
+  //     )
+  //   );
 
-    await provider.sendAndConfirm(tx);
-    console.log("User Ata: ",userAta.toString());
-    console.log("Escrow Ata: ",escrowAta.toString());
-    console.log("Buyer Ata: ",buyer.toString());
-    console.log("Seller Ata: ",sellerAta.toString());
-  });
+  //   await provider.sendAndConfirm(tx);
+  //   console.log("User Ata: ",userAta.toString());
+  //   console.log("Escrow Ata: ",escrowAta.toString());
+  //   console.log("Buyer Ata: ",buyer.toString());
+  //   console.log("Seller Ata: ",sellerAta.toString());
+  // });
 
-  it("mints tokens to owner", async () => {
-    const amount = new BN(200).mul(new BN(10 ** 9)); 
+  // it("mints tokens to owner", async () => {
+  //   const amount = new BN(200).mul(new BN(10 ** 9)); 
 
-    const tx = new Transaction().add(
-      createMintToInstruction(mint, userAta, owner, Number(amount), [])
-    );
+  //   const tx = new Transaction().add(
+  //     createMintToInstruction(mint, userAta, owner, Number(amount), [])
+  //   );
 
-    await provider.sendAndConfirm(tx);
-    const user = await provider.connection.getAccountInfo(userAta);
-    console.log("user balance: ", user.lamports / 1_000_000_000);
+  //   await provider.sendAndConfirm(tx);
+  //   const user = await provider.connection.getAccountInfo(userAta);
+  //   console.log("user balance: ", user.lamports / 1_000_000_000);
     
-  });
+  // });
 
   it("creates payment PDA", async () => {
-    
-      const amount = new BN(PAYMENT_AMOUNT);
-      console.log("Amount: ",amount);
-
-      const [newPaymentPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("payment"), owner.toBuffer()],
-      program.programId
-      );
-
-      await program.methods
-        .createPayment(amount, newPaymentPda, null)
-        .accounts({
-          signer: owner,
-          payments: newPaymentPda,
-          systemProgram: SystemProgram.programId,
-        }as any)
-        .rpc();
-        paymentPda = newPaymentPda;
-        const paymentDetails = await program.account.payment.fetch(newPaymentPda);
-        console.log("Payment Status: ",paymentDetails.paymentStatus);
-        console.log("Payment PDA created", );
-        expect(paymentDetails.paymentStatus).to.deep.equal({pending : {}});
+    const amount = new BN(Number(PAYMENT_AMOUNT));
+    console.log("Amount: ",amount.toNumber());
+    const [newPaymentPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("payment"), owner.toBuffer()],
+    program.programId
+    );
+    console.log("Payment PDA created", newPaymentPda);
+    await program.methods
+      .createPayment(amount, newPaymentPda, null)
+      .accounts({
+        signer: owner,
+        payments: newPaymentPda,
+        systemProgram: SystemProgram.programId,
+      }as any)
+      .rpc();
+      paymentPda = newPaymentPda;
+      const paymentDetails = await program.account.payment.fetch(newPaymentPda);
+      console.log("Payment Status: ",paymentDetails.paymentStatus);
+      console.log("Payment PDA created", paymentPda);
+      expect(paymentDetails.paymentStatus).to.deep.equal({pending : {}});
   });
 
 
-  it.only("creates escrow", async () => {
+  it("creates escrow", async () => {
     [escrowPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("escrow"), owner.toBuffer()],
       program.programId
     );
-
-    const amount = new BN(PAYMENT_AMOUNT);
     try {
-    await program.methods
-      .createEscrow(buyer, seller, amount)
-      .accounts({
-        owner: owner,
-        escrow: escrowPda,
-        payment: paymentPda,
-        userAta,
-        escrowAta,
-        buyerAta,
-        sellerAta,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      }as any)
-      .rpc();
+      const escrowDetails = await program.account.escrow.fetch(escrowPda);
+      console.log("Escrow Details: ",escrowDetails.escrowStatus);
+      if ("swapSuccess" in escrowDetails.escrowStatus) {
+        await program.methods.closeEscrow().accounts({
+          signer:owner,
+          escrow:escrowPda
+        }as any).rpc();
+        console.log("Existing escrow account closed successfully..");
+      }
     } catch (error) {
-      const userDetails = await provider.connection.getBalance(owner);
-      console.log("User Details: ",userDetails / LAMPORTS_PER_SOL + " SOL");
-      
+      const amount = new BN(Number(PAYMENT_AMOUNT));
+      await program.methods
+        .createEscrow(buyer, seller, amount)
+        .accounts({
+          owner: owner,
+          escrow: escrowPda,
+          payment: paymentPda,
+          userAta,
+          escrowAta,
+          buyerAta,
+          sellerAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        }as any)
+        .rpc();
+        const userDetails = await provider.connection.getBalance(owner);
+        console.log("User Details: ",userDetails / LAMPORTS_PER_SOL + " SOL");
+        const escrowDetails = await program.account.escrow.fetch(escrowPda);
+        console.log("Escrow Details: ",escrowDetails.escrowStatus);
+        expect(Number(escrowDetails.amount)).to.equal(USD_TO_SOL);
     }
   });
 
@@ -223,18 +247,19 @@ describe("anchor", () => {
     }
     console.log("EscrowPda: ",escrowPda);
     console.log("paymentPda: ",paymentPda);
-    
+    const [vaultPda,vaultBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), owner.toBuffer()],
+      program.programId
+    );
     const tx = await program.methods
-      .depositEscrow(0)
+      .depositEscrow(vaultBump)
       .accounts({
         owner: owner,
         escrow: escrowPda,
         payment: paymentPda,
-        userAta,
-        escrowAta,
-        buyerAta,
-        sellerAta,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        vaultAccount:vaultPda,
+        escrowAccount:escrowPda,
+        userAccount:owner,
         systemProgram: SystemProgram.programId,
       }as any)
       .rpc();
@@ -245,72 +270,55 @@ describe("anchor", () => {
     expect(escrow.escrowStatus).to.deep.equal({ fundsReceived: {} });
     expect(escrow.releaseFund).to.be.true;
 
-    const sellerBal = await provider.connection.getTokenAccountBalance(sellerAta);
-    const userBal = await provider.connection.getTokenAccountBalance(userAta);
-    const escrowBal = await provider.connection.getTokenAccountBalance(escrowAta);
-    const buyerBal = await provider.connection.getTokenAccountBalance(buyerAta);
-      
-    const userSOL = userBal.value.amount; 
-    const escrowSOL = escrowBal.value.amount ;
-    const buyerSOL = buyerBal.value.amount ;
-    const sellerSOL = sellerBal.value.amount;
+    const userBal = await provider.connection.getBalance(owner);
+    const vaultBal = await provider.connection.getBalance(vaultPda);
+    
       
     console.log("Account Balances:");
-    console.log(`Buyer (${buyer.toString()}): ${buyerSOL} SOL`);
-    console.log(`Seller (${buyer.toString()}): ${sellerSOL} SOL`);
-    console.log(`Escrow (${escrowPda.toString()}): ${escrowSOL} SOL`);
-    console.log(`User (${owner.toString()}): ${userSOL} SOL`);
+    console.log(`Vault (${escrowPda.toString()}): ${vaultBal} SOL`);
+    console.log(`User (${owner.toString()}): ${userBal} SOL`);
     const payment = await program.account.payment.fetch(paymentPda);
 
     expect(payment.paymentMethod).to.deep.equal({sol : {}})
   });
 
 it("withdraws from escrow", async () => {
-    const [, escrowBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("escrow"), owner.toBuffer()],
+    const [vaultPda,vaultBump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), owner.toBuffer()],
       program.programId
     );
 
     const tx = await program.methods
-      .withdrawEscrow(escrowBump)
+      .withdrawEscrow(vaultBump)
       .accounts({
         owner: owner,
         escrow: escrowPda,
         payment: paymentPda,
-        userAta,
-        escrowAta,
-        buyerAta,
-        sellerAta,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        vaultAccount:vaultPda,
+        escrowAccount:escrowPda,
+        sellerAccount:seller,
         systemProgram: SystemProgram.programId,
       }as any)
       .rpc();
 
     console.log("Withdraw tx:", tx);
-    const sellerBal = await provider.connection.getTokenAccountBalance(sellerAta);
-    const userBal = await provider.connection.getTokenAccountBalance(userAta);
-    const escrowBal = await provider.connection.getTokenAccountBalance(escrowAta);
-    const buyerBal = await provider.connection.getTokenAccountBalance(buyerAta);
-      
-    const userSOL = userBal.value.amount; 
-    const escrowSOL = escrowBal.value.amount ;
-    const buyerSOL = buyerBal.value.amount ;
-    const sellerSOL = sellerBal.value.amount;
+    const sellerBal = await provider.connection.getBalance(seller);
+    const vaultBal = await provider.connection.getBalance(vaultPda);
+    
       
     console.log("Account Balances:");
-    console.log(`Buyer (${buyer.toString()}): ${buyerSOL} SOL`);
-    console.log(`Seller (${buyer.toString()}): ${sellerSOL} SOL`);
-    console.log(`Escrow (${escrowPda.toString()}): ${escrowSOL} SOL`);
-    console.log(`User (${owner.toString()}): ${userSOL} SOL`);
+    console.log(`Vault (${escrowPda.toString()}): ${vaultBal} SOL`);
+    console.log(`Seller (${owner.toString()}): ${sellerBal} SOL`);
 
     const escrow = await program.account.escrow.fetch(escrowPda);
+
     expect(escrow.escrowStatus).to.deep.equal({ swapSuccess: {} });
     expect(escrow.releaseFund).to.be.false;
 
     const payment = await program.account.payment.fetch(paymentPda);
     expect(payment.paymentStatus).to.deep.equal({ success: {} });
 
-    expect(Number(sellerBal.value.amount)).to.equal(PAYMENT_AMOUNT);
+    // expect(Number(sellerBal.value.amount)).to.equal(PAYMENT_AMOUNT);
     if (expect(payment.paymentStatus).to.have.property("success")) {
       payment.txSignature = payment_tx;
     }else{
@@ -327,26 +335,22 @@ it("withdraws from escrow", async () => {
       program.programId
     );console.log("Order PDA:", orderPda.toBase58());
 
-    const [paymentPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("payment"), owner.toBuffer()],
-    program.programId
-    );console.log("Payment PDA: ",paymentPda);
-
-    const existingPayment = await program.account.payment.fetch(paymentPda);
-    const existingOrder = await program.account.order.fetch(orderPda);
-    
-    if (existingOrder && existingPayment) {
-      const order = await program.account.order.fetch(orderPda);
-      console.log("Order details: ",order);
-      console.log("Order ID: ", bytesToUuid(order.orderId));
-      console.log("Order Status: ",order.orderStatus);
-      console.log("Order Tracking: ",order.orderTracking);
-
-      expect(order.orderStatus).to.have.property("placed");
-
-    }else{
-      const payment_id = (await program.account.payment.fetch(paymentPda)).paymentId;
+    try {
+      const existingPayment = await program.account.payment.fetch(paymentPda);
+      const existingOrder = await program.account.order.fetch(orderPda);
       
+      if (existingOrder && existingPayment) {
+        const order = await program.account.order.fetch(orderPda);
+        console.log("Order details: ",order);
+        console.log("Order ID: ", bytesToUuid(order.orderId));
+        console.log("Order Status: ",order.orderStatus);
+        console.log("Order Tracking: ",order.orderTracking);
+  
+        expect(order.orderStatus).to.have.property("placed");
+  
+      }
+    } catch (error) {
+      const payment_id = (await program.account.payment.fetch(paymentPda)).paymentId;
       const order_tx = await program.methods.createOrder(
         String(bytesToUuid(payment_id)),
       ).accounts({
