@@ -1,5 +1,4 @@
 use anchor_lang::{prelude::*, system_program};
-use anchor_spl::token::Token;
 use crate::{error::EcomError, states::{escrow::{Escrow, EscrowStatus}, payment::{Payment, PaymentMethod, PaymentStatus}}};
 use anchor_lang::solana_program::hash::{self};
 
@@ -67,22 +66,6 @@ pub struct CreateEscrow<'info>{
         bump,
     )]
     pub payment:Account<'info,Payment>,
-
-    ///CHECK: User Token Account
-    #[account(mut)]
-    pub user_ata: AccountInfo<'info>,
-    ///CHECK: Escrow Token Account
-    #[account(mut)]
-    pub escrow_ata: AccountInfo<'info>,
-    ///CHECK: Buyer Token Account
-    #[account(mut)]
-    pub buyer_ata: AccountInfo<'info>,
-    ///CHECK: Seller Token Account
-    #[account(mut)]
-    pub seller_ata: AccountInfo<'info>,
-
-
-    pub token_program:Program<'info,Token>,
     pub system_program:Program<'info,System>
 }
 
