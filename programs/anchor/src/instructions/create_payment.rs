@@ -128,10 +128,6 @@ pub struct WithdrawlEscrow<'info>{
     )]    
     pub vault_account: AccountInfo<'info>,
 
-    ///CHECK: Native SOL Escrow Account
-    #[account(mut)]
-    pub escrow_account: AccountInfo<'info>,
-
     ///CHECK: Native SOL Seller Account
     #[account(mut)]
     pub seller_account: AccountInfo<'info>,
