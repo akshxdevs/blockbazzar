@@ -221,11 +221,6 @@ describe("anchor", () => {
           owner: owner,
           escrow: escrowPda,
           payment: paymentPda,
-          userAta,
-          escrowAta,
-          buyerAta,
-          sellerAta,
-          tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         }as any)
         .rpc();
@@ -296,7 +291,6 @@ it("withdraws from escrow", async () => {
         escrow: escrowPda,
         payment: paymentPda,
         vaultAccount:vaultPda,
-        escrowAccount:escrowPda,
         sellerAccount:seller,
         systemProgram: SystemProgram.programId,
       }as any)
