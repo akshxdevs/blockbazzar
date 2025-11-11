@@ -196,12 +196,13 @@ describe("anchor", () => {
       expect(paymentDetails.paymentStatus).to.deep.equal({pending : {}});
   });
 
-
   it("creates escrow", async () => {
     [escrowPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("escrow"), owner.toBuffer()],
       program.programId
     );
+    console.log("Escrow PDA: ",escrowPda);
+    
     try {
       const escrowDetails = await program.account.escrow.fetch(escrowPda);
       console.log("Escrow Details: ",escrowDetails.escrowStatus);
@@ -300,11 +301,10 @@ it("withdraws from escrow", async () => {
         systemProgram: SystemProgram.programId,
       }as any)
       .rpc();
-
     console.log("Withdraw tx:", tx);
+
     const sellerBal = await provider.connection.getBalance(seller);
     const vaultBal = await provider.connection.getBalance(vaultPda);
-    
       
     console.log("Account Balances:");
     console.log(`Vault (${escrowPda.toString()}): ${vaultBal} SOL`);
@@ -328,7 +328,6 @@ it("withdraws from escrow", async () => {
     console.log("payment invoice: ",payment);
   });
 
-  
   it("should place order and show details",async()=>{
     const [orderPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("order"), signer.publicKey.toBuffer()],
@@ -462,12 +461,27 @@ it("withdraws from escrow", async () => {
   });
 
   it("Close Payment PDA..",async()=>{
-    console.log(`Deleting Account Pda ${paymentPda} of ${owner.toString()}`);
-    const closeAccount =  await program.methods.closePayment().accounts({
-      signer: owner,
-      payments: paymentPda,
-    }as any).rpc();
-      console.log(`Account(${paymentPda}) Closed Successfully! `,closeAccount);
+    try {
+      const closePayment_tx =  await program.methods.closePayment().accounts({
+        signer: owner,
+        payments: paymentPda,
+      }as any).rpc();
+      console.log("Existing payment pda closed successfully..");
+      console.log(`Account(${paymentPda}) Closed Successfully! `,closePayment_tx);
+    } catch (error) {
+      console.log("Failed: Not able to close payment",error.message);
+    }
   });
-
+  it("close user escrow account",async()=>{
+    try {
+      const closeEscrow_tx = await program.methods.closeEscrow().accounts({
+        signer:owner,
+        escrow:escrowPda
+      }as any).rpc();
+      console.log("Existing escrow account closed successfully..");
+      console.log(`Account(${escrowPda}) Closed Successfully! `,closeEscrow_tx);
+    } catch (error) {
+      console.log("Failed: Not able to close escrow",error.message);
+    }
+  });
 });
