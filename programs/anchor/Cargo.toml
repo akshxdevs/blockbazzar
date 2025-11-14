@@ -1,0 +1,29 @@
+[package]
+name = "anchor"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "anchor"
+
+[features]
+default = []
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-spl/idl-build", "no-entrypoint"]
+
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = "0.31.1"
+sha256 = "1.6.0"
+spl-token = "8.0.0"
+uuid = "1.18.1"
+
