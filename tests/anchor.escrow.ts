@@ -77,93 +77,6 @@ describe("anchor", () => {
     ].join("-");
   }
 
-  // it("creates a mint", async () => {
-  //   const mintKp = anchor.web3.Keypair.generate();
-  //   const lamports = await provider.connection.getMinimumBalanceForRentExemption(82);
-
-  //   const tx = new Transaction().add(
-  //     SystemProgram.createAccount({
-  //       fromPubkey: owner,
-  //       newAccountPubkey: mintKp.publicKey,
-  //       space: 82,
-  //       lamports,
-  //       programId: TOKEN_PROGRAM_ID,
-  //     }),
-  //     createInitializeMintInstruction(
-  //       mintKp.publicKey,
-  //       9,
-  //       owner,   
-  //       null               
-  //     )
-  //   );
-
-  //   await provider.sendAndConfirm(tx, [mintKp]);
-  //   mint = mintKp.publicKey;
-  //   console.log("Mint Address: ",mint);
-    
-  // });
-
-  // it("creates user ATAs", async () => {
-  //   if (owner) {
-  //     [escrowPda] = PublicKey.findProgramAddressSync(
-  //       [Buffer.from("escrow"), owner.toBuffer()],
-  //       program.programId
-  //     );
-  //   }else{
-  //     console.error("Owner error");
-      
-  //   }
-  //   userAta = getAssociatedTokenAddressSync(mint, owner);
-  //   buyerAta = getAssociatedTokenAddressSync(mint, buyer);
-  //   sellerAta = getAssociatedTokenAddressSync(mint, seller);
-  //   escrowAta = getAssociatedTokenAddressSync(mint,escrowPda,true);
-  //   const tx = new Transaction().add(
-  //     createAssociatedTokenAccountInstruction(
-  //       owner,
-  //       userAta,
-  //       owner,
-  //       mint
-  //     ),
-  //     createAssociatedTokenAccountInstruction(
-  //       owner,
-  //       buyerAta,
-  //       buyer,
-  //       mint
-  //     ),
-  //     createAssociatedTokenAccountInstruction(
-  //       owner,
-  //       sellerAta,
-  //       seller,
-  //       mint
-  //     ),
-  //     createAssociatedTokenAccountInstruction(
-  //       owner,
-  //       escrowAta,
-  //       escrowPda,
-  //       mint
-  //     )
-  //   );
-
-  //   await provider.sendAndConfirm(tx);
-  //   console.log("User Ata: ",userAta.toString());
-  //   console.log("Escrow Ata: ",escrowAta.toString());
-  //   console.log("Buyer Ata: ",buyer.toString());
-  //   console.log("Seller Ata: ",sellerAta.toString());
-  // });
-
-  // it("mints tokens to owner", async () => {
-  //   const amount = new BN(200).mul(new BN(10 ** 9)); 
-
-  //   const tx = new Transaction().add(
-  //     createMintToInstruction(mint, userAta, owner, Number(amount), [])
-  //   );
-
-  //   await provider.sendAndConfirm(tx);
-  //   const user = await provider.connection.getAccountInfo(userAta);
-  //   console.log("user balance: ", user.lamports / 1_000_000_000);
-    
-  // });
-
   it("creates payment PDA", async () => {
     const amount = new BN(Number(PAYMENT_AMOUNT));
     console.log("Amount: ",amount.toNumber());
@@ -247,6 +160,7 @@ describe("anchor", () => {
     }
     console.log("EscrowPda: ",escrowPda);
     console.log("paymentPda: ",paymentPda);
+
     const vaultState = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("state"), provider.publicKey.toBuffer()],
       program.programId
