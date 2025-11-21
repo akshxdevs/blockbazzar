@@ -78,11 +78,10 @@ pub mod ecom_dapp {
     )?;
         Ok(())
     }
-    #[allow(unused_must_use)]
     pub fn close_all(
         ctx: Context<CloseAll>,
     ) -> Result<()> {
-        ctx.accounts.close_all();
+        ctx.accounts.close_all()?;
         Ok(())
     }
     pub fn create_escrow(
@@ -133,11 +132,16 @@ pub mod ecom_dapp {
         ctx: Context<UpdateOrder>,
         orderstatus_str:String
     )->Result<()> {
-        ctx.accounts.update_order(
+        ctx.accounts.update_tracking_status(
             orderstatus_str,
         )?;
         Ok(())
     }
-
+    pub fn close_order(
+        ctx:Context<CloseOrder>
+    ) ->Result<()> {
+        ctx.accounts.close_order()?;
+        Ok(())
+    }
 
 }
