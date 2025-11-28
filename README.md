@@ -90,7 +90,7 @@ pub struct Product {
 ```
 
 ## Overview of the Payment Initialization and Escrow Setup Process
-![Payment Escrow Flow](./images/img2.png)
+![Payment Escrow Flow](./imgs/img2.png)
 
 ### Notes
 
@@ -233,7 +233,7 @@ pub struct Order {
 ```
 
 ## Overview of the Order Initialization and Escrow Deposit Handling
-![Order Deposit Flow](./images/img3.png)
+![Order Deposit Flow](./imgs/img3.png)
 
 ---
 
@@ -280,7 +280,7 @@ Below is a detailed breakdown of how **payment → escrow → order** flows.
 ---
 
 ## Overview of the Order Lifecycle and Escrow Withdrawal Process
-![Order Withdrawal Flow](./images/img4.png)
+![Order Withdrawal Flow](./imgs/img4.png)
 
 ---
 
