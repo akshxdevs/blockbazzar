@@ -12,7 +12,8 @@ anchor = "FYo4gi69vTJZJMnNxj2mZz2Q9CbUu12rQDVtHNUFQ2o7"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
+url = "http://127.0.0.1:8900"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
